@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
       const [tokens, setTokens] = useState([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
+      const [walletAddress, setWalletAddress] = useState("0xf3a6958aB4EB88B392076A1c027Ee6459aafCAF1");
       const isMoralisInitialized = useMoralisInit();
 
       useEffect(() => {
@@ -16,7 +17,7 @@ import React, { useState, useEffect } from 'react';
           try {
             const response = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
               "chain": "0xa4b1",
-              "address": "0xf3a6958aB4EB88B392076A1c027Ee6459aafCAF1"
+              "address": walletAddress,
             });
 
             if (response?.result) {
@@ -33,11 +34,15 @@ import React, { useState, useEffect } from 'react';
         };
 
         fetchTokens();
-      }, [isMoralisInitialized]);
+      }, [isMoralisInitialized, walletAddress]);
 
       useEffect(() => {
         console.log("Tokens state:", tokens);
       }, [tokens]);
+
+      const handleAddressChange = (event) => {
+        setWalletAddress(event.target.value);
+      };
 
       if (loading) {
         return <p>Loading token balances...</p>;
@@ -50,6 +55,12 @@ import React, { useState, useEffect } from 'react';
       return (
         <div>
           <h1>Token Balances</h1>
+          <input
+            type="text"
+            placeholder="Enter wallet address"
+            value={walletAddress}
+            onChange={handleAddressChange}
+          />
           {tokens.length > 0 ? (
             <ul className="token-list">
               {tokens.map((token, index) => {
