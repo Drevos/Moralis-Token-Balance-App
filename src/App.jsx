@@ -17,17 +17,18 @@ import React, { useState, useEffect } from 'react';
         { label: "Binance Smart Chain", value: "0x38" },
         { label: "Base", value: "0x2105" },
         { label: "Optimism", value: "0xa" },
-         { label: "Linea", value: "0xe708" },
+        { label: "Linea", value: "0xe708" },
         { label: "Avalanche", value: "0xa86a" },
         { label: "Fantom", value: "0xfa" },
         { label: "Cronos", value: "0x19" },
         { label: "Gnosis", value: "0x64" },
-         { label: "Chiliz", value: "0x15b38" },
-         { label: "Pulsechain", value: "0x171" },
-         { label: "Moonbeam", value: "0x504" },
-         { label: "Flow", value: "0x2eb" },
-         { label: "Ronin", value: "0x7e4" },
-         { label: "Lisk", value: "0x46f" },
+        { label: "Chiliz", value: "0x15b38" },
+        { label: "Pulsechain", value: "0x171" },
+        { label: "Moonbeam", value: "0x504" },
+        { label: "Flow", value: "0x2eb" },
+        { label: "Ronin", value: "0x7e4" },
+        { label: "Lisk", value: "0x46f" },
+        { label: "Solana", value: "solana" },
       ];
 
       const fetchTokens = async () => {
@@ -36,16 +37,40 @@ import React, { useState, useEffect } from 'react';
         }
         setLoading(true);
         try {
-          const response = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
-            "chain": chain,
-            "address": walletAddress,
-          });
-
-          if (response?.result) {
-            console.log("API Response:", response.result);
-            setTokens(response.result);
+          let response;
+          if (chain === "solana") {
+            response = await fetch(
+              `https://solana-gateway.moralis.io/account/mainnet/${walletAddress}/balance`,
+              {
+                headers: {
+                  "X-API-Key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6Ijg2YmIxNWQ4LTA5YzktNDU1NS1iOTY4LTMzOWIxMjM5MWU3ZiIsIm9yZ0lkIjoiNDIyODQ2IiwidXNlcklkIjoiNDM0ODg0IiwidHlwZUlkIjoiYjg2NmExOGYtZjNiYi00MjI3LWE0YmUtZDcxZTMxYWM5MTk0IiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3MzUzMTEzNzksImV4cCI6NDg5MTA3MTM3OX0.-CaqimOZy-0YVspa6sKHJLALgaEovfXGXOaboUD8aTc",
+                  "accept": "application/json"
+                },
+              }
+            );
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log("Solana API Response:", data);
+             setTokens([{
+              name: "Solana",
+              symbol: "SOL",
+              balance: data.solana,
+              usdValue: null,
+            }]);
           } else {
-            setError("No tokens found for this wallet.");
+            response = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
+              "chain": chain,
+              "address": walletAddress,
+            });
+
+            if (response?.result) {
+              console.log("EVM API Response:", response.result);
+              setTokens(response.result);
+            } else {
+              setError("No tokens found for this wallet.");
+            }
           }
         } catch (err) {
           setError(err.message || "Failed to fetch token balances.");
@@ -92,10 +117,10 @@ import React, { useState, useEffect } from 'react';
                 console.log("Rendering token:", token);
                 return (
                   <li key={index} className="token-item">
-                    <h3>{token.name} ({token.symbol})</h3>
-                    <p>Balance: {token.balanceFormatted || 'N/A'}</p>
+                    <h3>{token.name || token.tokenName} ({token.symbol || token.tokenSymbol})</h3>
+                     <p>Balance: {token.balanceFormatted || token.balance || 'N/A'}</p>
                     <p>
-                      USD Value: {typeof token.usdValue === 'number' ? `$${token.usdValue.toFixed(2)}` : 'N/A'}
+                      USD Value: {typeof (token.usdValue || token.priceUsd) === 'number' ? `$${(token.usdValue || token.priceUsd).toFixed(2)}` : 'N/A'}
                     </p>
                   </li>
                 );
