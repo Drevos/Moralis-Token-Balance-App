@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
     import { ref, set } from "firebase/database";
     import Login from './Login';
     import { onAuthStateChanged, signOut } from "firebase/auth";
+    import 'bootstrap/dist/css/bootstrap.min.css';
 
     const App = () => {
       const [tokens, setTokens] = useState([]);
