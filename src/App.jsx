@@ -119,11 +119,26 @@ import React, { useState, useEffect } from 'react';
         }
         setSaveStatus('saving');
         try {
-          await set(ref(db, `users/${user.uid}/wallets/${walletAddress}`), {
+          const walletData = {
             address: walletAddress,
-            chain: chain
-          });
-          console.log("Wallet address saved successfully.");
+            chain: chain,
+            tokens: {}
+          };
+
+          if (tokens && tokens.length > 0) {
+            tokens.forEach((token, index) => {
+              const tokenKey = `token_${index}`;
+              walletData.tokens[tokenKey] = {
+                name: token.name || token.tokenName || 'N/A',
+                symbol: token.symbol || token.tokenSymbol || 'N/A',
+                quantity: token.balanceFormatted || token.balance || 'N/A',
+                value: typeof (token.usdValue || token.priceUsd) === 'number' ? (token.usdValue || token.priceUsd).toFixed(2) : 'N/A'
+              };
+            });
+          }
+
+          await set(ref(db, `users/${user.uid}/wallets/${walletAddress}`), walletData);
+          console.log("Wallet address and tokens saved successfully.");
           setSaveStatus('success');
         } catch (err) {
           console.error("Error saving wallet address:", err);
