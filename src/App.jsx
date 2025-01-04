@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
     import Moralis from 'moralis';
     import useMoralisInit from './hooks/useMoralisInit';
+    import { db } from './firebase';
+    import { ref, set } from "firebase/database";
 
     const App = () => {
       const [tokens, setTokens] = useState([]);
@@ -9,6 +11,7 @@ import React, { useState, useEffect } from 'react';
       const [walletAddress, setWalletAddress] = useState("0xf3a6958aB4EB88B392076A1c027Ee6459aafCAF1");
       const [chain, setChain] = useState("0xa4b1");
       const isMoralisInitialized = useMoralisInit();
+      const [saveStatus, setSaveStatus] = useState(null);
 
       const chainOptions = [
         { label: "Arbitrum", value: "0xa4b1" },
@@ -91,6 +94,21 @@ import React, { useState, useEffect } from 'react';
         setChain(event.target.value);
       };
 
+      const saveWalletAddress = async () => {
+        setSaveStatus('saving');
+        try {
+          await set(ref(db, 'wallets/' + walletAddress), {
+            address: walletAddress,
+            chain: chain
+          });
+          console.log("Wallet address saved successfully.");
+          setSaveStatus('success');
+        } catch (err) {
+          console.error("Error saving wallet address:", err);
+          setSaveStatus('error');
+        }
+      };
+
       return (
         <div>
           <h1>Token Balances</h1>
@@ -110,6 +128,11 @@ import React, { useState, useEffect } from 'react';
           <button onClick={fetchTokens} disabled={loading}>
             {loading ? "Loading..." : "Fetch Tokens"}
           </button>
+          <button onClick={saveWalletAddress} disabled={saveStatus === 'saving'}>
+            {saveStatus === 'saving' ? 'Saving...' : 'Save Wallet Address'}
+          </button>
+          {saveStatus === 'success' && <p>Wallet address saved successfully!</p>}
+          {saveStatus === 'error' && <p>Error saving wallet address.</p>}
           {error && <p>Error: {error}</p>}
           {tokens.length > 0 ? (
             <ul className="token-list">
