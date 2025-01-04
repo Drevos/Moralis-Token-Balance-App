@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
     import Moralis from 'moralis';
     import useMoralisInit from './hooks/useMoralisInit';
-    import { db } from './firebase';
+    import { db, auth } from './firebase';
     import { ref, set } from "firebase/database";
+    import Login from './Login';
+    import { onAuthStateChanged, signOut } from "firebase/auth";
 
     const App = () => {
       const [tokens, setTokens] = useState([]);
@@ -12,6 +14,21 @@ import React, { useState, useEffect } from 'react';
       const [chain, setChain] = useState("0xa4b1");
       const isMoralisInitialized = useMoralisInit();
       const [saveStatus, setSaveStatus] = useState(null);
+      const [user, setUser] = useState(null);
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+      useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (user) {
+            setUser(user);
+            setIsLoggedIn(true);
+          } else {
+            setUser(null);
+            setIsLoggedIn(false);
+          }
+        });
+        return () => unsubscribe();
+      }, []);
 
       const chainOptions = [
         { label: "Arbitrum", value: "0xa4b1" },
@@ -95,9 +112,13 @@ import React, { useState, useEffect } from 'react';
       };
 
       const saveWalletAddress = async () => {
+        if (!user) {
+          console.error("No user logged in.");
+          return;
+        }
         setSaveStatus('saving');
         try {
-          await set(ref(db, 'wallets/' + walletAddress), {
+          await set(ref(db, `users/${user.uid}/wallets/${walletAddress}`), {
             address: walletAddress,
             chain: chain
           });
@@ -109,9 +130,31 @@ import React, { useState, useEffect } from 'react';
         }
       };
 
+      const handleLogout = async () => {
+        try {
+          await signOut(auth);
+          setIsLoggedIn(false);
+          setUser(null);
+          localStorage.clear();
+          sessionStorage.clear();
+          console.log("User logged out successfully.");
+        } catch (error) {
+          console.error("Error logging out:", error);
+        }
+      };
+
+      const handleLogin = () => {
+        setIsLoggedIn(true);
+      };
+
+      if (!isLoggedIn) {
+        return <Login onLogin={handleLogin} />;
+      }
+
       return (
         <div>
           <h1>Token Balances</h1>
+          <button onClick={handleLogout}>Logout</button>
           <input
             type="text"
             placeholder="Enter wallet address"
