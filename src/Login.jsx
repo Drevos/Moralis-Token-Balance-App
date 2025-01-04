@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
     import { auth } from './firebase';
-    import { signInWithEmailAndPassword } from "firebase/auth";
+    import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
     import 'bootstrap/dist/css/bootstrap.min.css';
 
     const Login = ({ onLogin }) => {
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
+      const [isCreatingAccount, setIsCreatingAccount] = useState(false);
       const [error, setError] = useState(null);
 
       const handleSubmit = async (event) => {
         event.preventDefault();
         setError(null);
         try {
-          await signInWithEmailAndPassword(auth, email, password);
+          if (isCreatingAccount) {
+            await createUserWithEmailAndPassword(auth, email, password);
+          } else {
+            await signInWithEmailAndPassword(auth, email, password);
+          }
           onLogin();
         } catch (error) {
           setError(error.message);
         }
+      };
+
+      const toggleCreateAccount = () => {
+        setIsCreatingAccount(!isCreatingAccount);
       };
 
       return (
@@ -36,7 +45,7 @@ import React, { useState } from 'react';
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                          <p>Please login to your account</p>
+                          <p>{isCreatingAccount ? "Create your account" : "Please login to your account"}</p>
 
                           <div className="form-outline mb-4">
                             <input
@@ -67,7 +76,7 @@ import React, { useState } from 'react';
                               className="btn btn-primary btn-block fa-lg gradient-custom-2 mb-3"
                               type="submit"
                             >
-                              Log in
+                              {isCreatingAccount ? "Create Account" : "Log in"}
                             </button>
                             <div style={{textAlign: 'center'}}>
                               <a className="text-muted" href="#!">forgot password ?</a>
@@ -75,8 +84,10 @@ import React, { useState } from 'react';
                           </div>
 
                           <div className="d-flex align-items-center justify-content-center pb-4">
-                            <p className="mb-0 me-2">Don't have an account?</p>
-                            <button type="button" className="btn btn-outline-danger">Create new</button>
+                            <p className="mb-0 me-2">{isCreatingAccount ? "Already have an account?" : "Don't have an account?"}</p>
+                            <button type="button" className="btn btn-outline-danger" onClick={toggleCreateAccount}>
+                              {isCreatingAccount ? "Log In" : "Create new"}
+                            </button>
                           </div>
 
                         </form>
