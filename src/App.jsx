@@ -6,6 +6,70 @@ import React, { useState, useEffect } from 'react';
     import Login from './Login';
     import { onAuthStateChanged, signOut } from "firebase/auth";
     import 'bootstrap/dist/css/bootstrap.min.css';
+    import { Routes, Route, Link, useNavigate, Navigate, useLocation } from 'react-router-dom';
+
+    const Dashboard = ({ tokens, loading, error, walletAddress, chain, handleAddressChange, handleChainChange, chainOptions, fetchTokens, saveWalletAddress, saveStatus }) => {
+      return (
+        <div>
+          <h1>Token Balances</h1>
+          <input
+            type="text"
+            placeholder="Enter wallet address"
+            value={walletAddress}
+            onChange={handleAddressChange}
+          />
+          <select value={chain} onChange={handleChainChange}>
+            {chainOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button onClick={fetchTokens} disabled={loading}>
+            {loading ? "Loading..." : "Fetch Tokens"}
+          </button>
+          <button onClick={saveWalletAddress} disabled={saveStatus === 'saving'}>
+            {saveStatus === 'saving' ? 'Saving...' : 'Save Wallet Address'}
+          </button>
+          {saveStatus === 'success' && <p>Wallet address saved successfully!</p>}
+          {saveStatus === 'error' && <p>Error saving wallet address.</p>}
+          {error && <p>Error: {error}</p>}
+          {tokens.length > 0 ? (
+            <ul className="token-list">
+              {tokens.map((token, index) => {
+                console.log("Rendering token:", token);
+                return (
+                  <li key={index} className="token-item">
+                    <h3>{token.name || token.tokenName} ({token.symbol || token.tokenSymbol})</h3>
+                     <p>Balance: {token.balanceFormatted || token.balance || 'N/A'}</p>
+                    <p>
+                      USD Value: {typeof (token.usdValue || token.priceUsd) === 'number' ? `$${(token.usdValue || token.priceUsd).toFixed(2)}` : 'N/A'}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            !loading && <p>No tokens found.</p>
+          )}
+        </div>
+      );
+    };
+
+    const Portefeuilles = () => {
+      return (
+        <div>
+          <h1>Hello</h1>
+        </div>
+      );
+    };
+
+    const Strategies = () => {
+      return (
+        <div>
+        </div>
+      );
+    };
 
     const App = () => {
       const [tokens, setTokens] = useState([]);
@@ -17,19 +81,25 @@ import React, { useState, useEffect } from 'react';
       const [saveStatus, setSaveStatus] = useState(null);
       const [user, setUser] = useState(null);
       const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const navigate = useNavigate();
+      const location = useLocation();
+      const [isMenuOpen, setIsMenuOpen] = useState(false);
 
       useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
           if (user) {
             setUser(user);
             setIsLoggedIn(true);
+            if (location.pathname === '/') {
+              navigate('/dashboard');
+            }
           } else {
             setUser(null);
             setIsLoggedIn(false);
           }
         });
         return () => unsubscribe();
-      }, []);
+      }, [navigate, location]);
 
       const chainOptions = [
         { label: "Arbitrum", value: "0xa4b1" },
@@ -153,6 +223,7 @@ import React, { useState, useEffect } from 'react';
           setUser(null);
           localStorage.clear();
           sessionStorage.clear();
+          navigate('/');
           console.log("User logged out successfully.");
         } catch (error) {
           console.error("Error logging out:", error);
@@ -163,54 +234,56 @@ import React, { useState, useEffect } from 'react';
         setIsLoggedIn(true);
       };
 
+      const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+      };
+
       if (!isLoggedIn) {
         return <Login onLogin={handleLogin} />;
       }
 
       return (
         <div>
-          <h1>Token Balances</h1>
-          <button onClick={handleLogout}>Logout</button>
-          <input
-            type="text"
-            placeholder="Enter wallet address"
-            value={walletAddress}
-            onChange={handleAddressChange}
-          />
-          <select value={chain} onChange={handleChainChange}>
-            {chainOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <button onClick={fetchTokens} disabled={loading}>
-            {loading ? "Loading..." : "Fetch Tokens"}
-          </button>
-          <button onClick={saveWalletAddress} disabled={saveStatus === 'saving'}>
-            {saveStatus === 'saving' ? 'Saving...' : 'Save Wallet Address'}
-          </button>
-          {saveStatus === 'success' && <p>Wallet address saved successfully!</p>}
-          {saveStatus === 'error' && <p>Error saving wallet address.</p>}
-          {error && <p>Error: {error}</p>}
-          {tokens.length > 0 ? (
-            <ul className="token-list">
-              {tokens.map((token, index) => {
-                console.log("Rendering token:", token);
-                return (
-                  <li key={index} className="token-item">
-                    <h3>{token.name || token.tokenName} ({token.symbol || token.tokenSymbol})</h3>
-                     <p>Balance: {token.balanceFormatted || token.balance || 'N/A'}</p>
-                    <p>
-                      USD Value: {typeof (token.usdValue || token.priceUsd) === 'number' ? `$${(token.usdValue || token.priceUsd).toFixed(2)}` : 'N/A'}
-                    </p>
+          <nav className="navbar navbar-expand-lg navbar-light bg-light">
+            <div className="container">
+              <Link className="navbar-brand" to="/dashboard">My App</Link>
+              <button className="navbar-toggler" type="button" onClick={toggleMenu} data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded={isMenuOpen} aria-label="Toggle navigation">
+                <span className="navbar-toggler-icon"></span>
+              </button>
+              <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
+                <ul className="navbar-nav">
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/dashboard" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
                   </li>
-                );
-              })}
-            </ul>
-          ) : (
-            !loading && <p>No tokens found.</p>
-          )}
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/portefeuilles" onClick={() => setIsMenuOpen(false)}>Portefeuilles</Link>
+                  </li>
+                   <li className="nav-item">
+                    <Link className="nav-link" to="/strategies" onClick={() => setIsMenuOpen(false)}>Strategies</Link>
+                  </li>
+                </ul>
+              </div>
+              <button onClick={handleLogout}>Logout</button>
+            </div>
+          </nav>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/dashboard" element={<Dashboard
+              tokens={tokens}
+              loading={loading}
+              error={error}
+              walletAddress={walletAddress}
+              chain={chain}
+              handleAddressChange={handleAddressChange}
+              handleChainChange={handleChainChange}
+              chainOptions={chainOptions}
+              fetchTokens={fetchTokens}
+              saveWalletAddress={saveWalletAddress}
+              saveStatus={saveStatus}
+            />} />
+            <Route path="/portefeuilles" element={<Portefeuilles />} />
+            <Route path="/strategies" element={<Strategies />} />
+          </Routes>
         </div>
       );
     };
